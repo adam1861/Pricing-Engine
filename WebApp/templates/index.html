@@ -1,0 +1,284 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-shell">
+    <aside class="control-panel">
+        <div class="brand-card">
+            <p class="eyebrow">FastAPI Interface</p>
+            <h1>Pricing Engine Studio</h1>
+            <p class="support-copy">
+                Explore weekly food demand, inspect elasticity-driven recommendations,
+                and export meal-level price decisions from the browser.
+            </p>
+        </div>
+
+        <form method="get" action="/" class="filter-card">
+            <div class="field-group">
+                <label for="category">Category</label>
+                <select id="category" name="category">
+                    <option value="">All categories</option>
+                    {% for option in metadata.categories %}
+                    <option value="{{ option }}" {% if filters.category == option %}selected{% endif %}>{{ option }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="field-group">
+                <label for="cuisine">Cuisine</label>
+                <select id="cuisine" name="cuisine">
+                    <option value="">All cuisines</option>
+                    {% for option in metadata.cuisines %}
+                    <option value="{{ option }}" {% if filters.cuisine == option %}selected{% endif %}>{{ option }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="field-grid two-up">
+                <div class="field-group">
+                    <label for="week_start">Week start</label>
+                    <input id="week_start" type="number" name="week_start" min="{{ metadata.week_min }}" max="{{ metadata.week_max }}" value="{{ filters.week_start }}">
+                </div>
+                <div class="field-group">
+                    <label for="week_end">Week end</label>
+                    <input id="week_end" type="number" name="week_end" min="{{ metadata.week_min }}" max="{{ metadata.week_max }}" value="{{ filters.week_end }}">
+                </div>
+            </div>
+
+            <div class="field-grid two-up">
+                <div class="field-group">
+                    <label for="recent_weeks">Recent weeks</label>
+                    <input id="recent_weeks" type="number" name="recent_weeks" min="2" max="12" value="{{ filters.recent_weeks }}">
+                </div>
+                <div class="field-group">
+                    <label for="max_change_pct">Max change %</label>
+                    <input id="max_change_pct" type="number" name="max_change_pct" min="5" max="30" value="{{ filters.max_change_pct }}">
+                </div>
+            </div>
+
+            <div class="field-group">
+                <label for="candidate_count">Candidate prices per meal</label>
+                <input id="candidate_count" type="number" name="candidate_count" min="10" max="50" step="5" value="{{ filters.candidate_count }}">
+            </div>
+
+            <div class="field-group">
+                <label for="meal_id">Meal curve focus</label>
+                <select id="meal_id" name="meal_id">
+                    {% if recommendation_meals %}
+                        {% for option in recommendation_meals %}
+                        <option value="{{ option.meal_id }}" {% if option.selected %}selected{% endif %}>{{ option.label }}</option>
+                        {% endfor %}
+                    {% else %}
+                        <option value="">No meal available</option>
+                    {% endif %}
+                </select>
+            </div>
+
+            <div class="button-row">
+                <button type="submit" class="primary-button">Refresh view</button>
+                <a href="/" class="ghost-button">Reset</a>
+            </div>
+
+            <div class="micro-note">
+                Data grain reminder: one row = one meal in one center for one week.
+            </div>
+        </form>
+
+        <div class="api-card">
+            <p class="eyebrow">Reuse The Output</p>
+            <a class="api-link" href="/api/recommendations" target="_blank" rel="noreferrer">Open JSON recommendations</a>
+            <a class="api-link" href="/recommendations.csv?{{ download_query }}">Download recommendation CSV</a>
+            <a class="api-link" href="/health" target="_blank" rel="noreferrer">Healthcheck</a>
+        </div>
+    </aside>
+
+    <main class="content-area">
+        <section class="hero-card">
+            <div>
+                <p class="eyebrow">Current workflow</p>
+                <h2>Meal-level optimization built from your notebook logic</h2>
+                <p class="support-copy">
+                    Recommendations are computed at the <strong>meal x week</strong> level by
+                    aggregating orders across centers, estimating elasticity, and testing price
+                    candidates inside historical and change-based bounds.
+                </p>
+            </div>
+            <div class="hero-accent">
+                <span>145 weeks</span>
+                <span>77 centers</span>
+                <span>51 meals</span>
+            </div>
+        </section>
+
+        <section class="section-block">
+            <div class="section-header">
+                <div>
+                    <p class="eyebrow">Overview</p>
+                    <h3>Historical dataset scope</h3>
+                </div>
+            </div>
+            <div class="metric-grid">
+                {% for card in overview_cards %}
+                <article class="metric-card">
+                    <p class="metric-label">{{ card.label }}</p>
+                    <p class="metric-value">{{ card.value }}</p>
+                    {% if card.detail %}
+                    <p class="metric-detail">Exact: {{ card.detail }}</p>
+                    {% endif %}
+                    <p class="metric-note">{{ card.note }}</p>
+                </article>
+                {% endfor %}
+            </div>
+            <div class="chart-grid two-up-wide">
+                <section class="chart-card">{{ weekly_plot_html | safe }}</section>
+                <section class="chart-card">{{ center_plot_html | safe }}</section>
+            </div>
+            <section class="chart-card">{{ category_plot_html | safe }}</section>
+        </section>
+
+        <section class="section-block">
+            <div class="section-header">
+                <div>
+                    <p class="eyebrow">Recommendation Lab</p>
+                    <h3>Revenue-oriented price decisions</h3>
+                </div>
+            </div>
+            <div class="metric-grid">
+                {% for card in recommendation_cards %}
+                <article class="metric-card">
+                    <p class="metric-label">{{ card.label }}</p>
+                    <p class="metric-value">{{ card.value }}</p>
+                    {% if card.detail %}
+                    <p class="metric-detail">Exact: {{ card.detail }}</p>
+                    {% endif %}
+                    <p class="metric-note">{{ card.note }}</p>
+                </article>
+                {% endfor %}
+            </div>
+
+            <div class="chart-grid two-up-wide">
+                <section class="chart-card">{{ curve_plot_html | safe }}</section>
+                <section class="detail-card">
+                    {% if selected_meal_detail %}
+                    <p class="eyebrow">Focused meal</p>
+                    <h4>Meal {{ selected_meal_detail.meal_id }}</h4>
+                    <dl class="detail-list">
+                        <div><dt>Category</dt><dd>{{ selected_meal_detail.category }}</dd></div>
+                        <div><dt>Cuisine</dt><dd>{{ selected_meal_detail.cuisine }}</dd></div>
+                        <div><dt>Current price</dt><dd>{{ selected_meal_detail.current_price }}</dd></div>
+                        <div><dt>Recommended price</dt><dd>{{ selected_meal_detail.recommended_price }}</dd></div>
+                        <div><dt>Median elasticity</dt><dd>{{ selected_meal_detail.median_elasticity }}</dd></div>
+                        <div><dt>Projected uplift</dt><dd>{{ selected_meal_detail.revenue_uplift }}</dd></div>
+                        <div><dt>Allowed range</dt><dd>{{ selected_meal_detail.price_range }}</dd></div>
+                    </dl>
+                    {% else %}
+                    <p class="eyebrow">Focused meal</p>
+                    <h4>No meal selected</h4>
+                    <p class="support-copy">Adjust the filters to surface at least one recommendation.</p>
+                    {% endif %}
+                </section>
+            </div>
+
+            <section class="table-card">
+                <div class="table-header">
+                    <div>
+                        <p class="eyebrow">Top opportunities</p>
+                        <h4>Recommendation table</h4>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Meal</th>
+                                <th>Category</th>
+                                <th>Cuisine</th>
+                                <th>Current price</th>
+                                <th>Recommended price</th>
+                                <th>Elasticity</th>
+                                <th>Current revenue</th>
+                                <th>Projected revenue</th>
+                                <th>Uplift</th>
+                                <th>Uplift %</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if recommendation_rows %}
+                                {% for row in recommendation_rows %}
+                                <tr>
+                                    <td>{{ row.meal_id }}</td>
+                                    <td>{{ row.category }}</td>
+                                    <td>{{ row.cuisine }}</td>
+                                    <td>{{ row.current_price }}</td>
+                                    <td>{{ row.recommended_price }}</td>
+                                    <td>{{ row.elasticity }}</td>
+                                    <td>{{ row.current_revenue }}</td>
+                                    <td>{{ row.projected_revenue }}</td>
+                                    <td class="{{ row.uplift_class }}">{{ row.uplift }}</td>
+                                    <td class="{{ row.uplift_class }}">{{ row.uplift_pct }}</td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="10" class="empty-cell">No recommendations match the current filters.</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </section>
+
+        <section class="section-block">
+            <div class="section-header">
+                <div>
+                    <p class="eyebrow">Dataset Explorer</p>
+                    <h3>Raw rows inside the current view</h3>
+                </div>
+                <p class="support-copy compact">
+                    {{ filtered_center_count }} centers, {{ filtered_meal_count }} meals, {{ raw_row_count }} rows in scope.
+                </p>
+            </div>
+            <section class="table-card">
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Week</th>
+                                <th>Center</th>
+                                <th>Type</th>
+                                <th>Meal</th>
+                                <th>Category</th>
+                                <th>Cuisine</th>
+                                <th>Checkout price</th>
+                                <th>Orders</th>
+                                <th>Revenue</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if raw_rows %}
+                                {% for row in raw_rows %}
+                                <tr>
+                                    <td>{{ row.week }}</td>
+                                    <td>{{ row.center_id }}</td>
+                                    <td>{{ row.center_type }}</td>
+                                    <td>{{ row.meal_id }}</td>
+                                    <td>{{ row.category }}</td>
+                                    <td>{{ row.cuisine }}</td>
+                                    <td>{{ row.checkout_price }}</td>
+                                    <td>{{ row.num_orders }}</td>
+                                    <td>{{ row.revenue }}</td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="9" class="empty-cell">No dataset rows fall inside the current selection.</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </section>
+    </main>
+</div>
+{% endblock %}
