@@ -17,6 +17,8 @@ Notebook-driven pricing analysis for a weekly food demand dataset. The project p
   Analysis notebooks used in the project
 - `WebApp/main.py`
   FastAPI web interface for exploring the dataset and price recommendations
+- `api/index.py`
+  Vercel-compatible FastAPI entrypoint that re-exports the main app
 - `WebApp/templates/` and `WebApp/static/`
   HTML templates and styling for the FastAPI app
 - `Dashboard/app.py`
