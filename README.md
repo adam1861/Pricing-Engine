@@ -94,6 +94,28 @@ The app includes:
 
 Open `http://127.0.0.1:8000`.
 
+## Deploy On Render
+
+The repo now includes `render.yaml` for a one-service Render deployment.
+
+Current Render blueprint settings:
+
+- runtime: `python`
+- plan: `free`
+- build command: `pip install -r requirements.txt`
+- start command: `uvicorn WebApp.main:app --host 0.0.0.0 --port $PORT`
+- health check path: `/health`
+- Python version: `3.12.0`
+
+To deploy:
+
+1. Push the repo to GitHub.
+2. In Render, create a new Blueprint or new Web Service from this repository.
+3. If you use the Blueprint flow, Render will read `render.yaml` automatically.
+4. After the first deploy, open the generated `onrender.com` URL.
+
+If you prefer creating the service manually in the dashboard, use the same build and start commands listed above.
+
 ## Optional Legacy Dashboard
 
 If you still want the older exploratory version:
