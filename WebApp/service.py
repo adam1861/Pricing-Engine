@@ -8,8 +8,18 @@ import pandas as pd
 
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
-RAW_DIR = ROOT_DIR / "Data" / "raw"
-PROCESSED_DIR = ROOT_DIR / "Data" / "processed"
+
+
+def _resolve_existing_dir(candidates: list[Path]) -> Path:
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return candidates[0]
+
+
+DATA_DIR = _resolve_existing_dir([ROOT_DIR / "Data", ROOT_DIR / "data"])
+RAW_DIR = _resolve_existing_dir([DATA_DIR / "raw", DATA_DIR / "Raw"])
+PROCESSED_DIR = _resolve_existing_dir([DATA_DIR / "processed", DATA_DIR / "Processed"])
 
 MEAL_INFO_PATH = RAW_DIR / "meal_info.csv"
 CENTER_INFO_PATH = RAW_DIR / "fulfilment_center_info.csv"
