@@ -266,9 +266,9 @@ def index(
         metadata = get_filter_metadata()
     except FileNotFoundError as exc:
         return templates.TemplateResponse(
-            "error.html",
-            {
-                "request": request,
+            request=request,
+            name="error.html",
+            context={
                 "page_title": "Pricing Engine Studio",
                 "error_title": "Project data files are missing on the server",
                 "error_message": str(exc),
@@ -370,7 +370,6 @@ def index(
         )
 
     context = {
-        "request": request,
         "page_title": "Pricing Engine Studio",
         "filters": {
             "category": category or "",
@@ -451,7 +450,7 @@ def index(
             f"&max_change_pct={max_change_pct}&candidate_count={candidate_count}"
         ),
     }
-    return templates.TemplateResponse("index.html", context)
+    return templates.TemplateResponse(request=request, name="index.html", context=context)
 
 
 @app.get("/api/recommendations", response_class=JSONResponse)
