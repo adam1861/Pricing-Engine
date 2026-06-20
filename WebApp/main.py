@@ -262,7 +262,23 @@ def index(
     candidate_count: int = Query(default=20, ge=10, le=50),
     meal_id: int | None = Query(default=None),
 ):
-    metadata = get_filter_metadata()
+    try:
+        metadata = get_filter_metadata()
+    except FileNotFoundError as exc:
+        return templates.TemplateResponse(
+            "error.html",
+            {
+                "request": request,
+                "page_title": "Pricing Engine Studio",
+                "error_title": "Project data files are missing on the server",
+                "error_message": str(exc),
+                "error_hint": (
+                    "Render deployed the application code, but the CSV files expected in "
+                    "Data/raw and Data/processed were not included in the deployed repo."
+                ),
+            },
+            status_code=500,
+        )
     week_min = metadata["week_min"]
     week_max = metadata["week_max"]
 
@@ -446,11 +462,14 @@ def recommendations_api(
     max_change_pct: int = Query(default=20, ge=5, le=30),
     candidate_count: int = Query(default=20, ge=10, le=50),
 ):
-    recommendations = build_recommendations(
-        recent_weeks=recent_weeks,
-        max_change=max_change_pct / 100,
-        candidate_count=candidate_count,
-    )
+    try:
+        recommendations = build_recommendations(
+            recent_weeks=recent_weeks,
+            max_change=max_change_pct / 100,
+            candidate_count=candidate_count,
+        )
+    except FileNotFoundError as exc:
+        return JSONResponse({"error": str(exc)}, status_code=500)
     filtered_recommendations = filter_recommendations(
         recommendations,
         category=category,
@@ -467,11 +486,14 @@ def recommendations_csv(
     max_change_pct: int = Query(default=20, ge=5, le=30),
     candidate_count: int = Query(default=20, ge=10, le=50),
 ):
-    recommendations = build_recommendations(
-        recent_weeks=recent_weeks,
-        max_change=max_change_pct / 100,
-        candidate_count=candidate_count,
-    )
+    try:
+        recommendations = build_recommendations(
+            recent_weeks=recent_weeks,
+            max_change=max_change_pct / 100,
+            candidate_count=candidate_count,
+        )
+    except FileNotFoundError as exc:
+        return JSONResponse({"error": str(exc)}, status_code=500)
     filtered_recommendations = filter_recommendations(
         recommendations,
         category=category,

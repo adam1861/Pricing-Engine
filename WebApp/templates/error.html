@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-shell error-shell">
+    <main class="content-area error-area">
+        <section class="hero-card error-hero">
+            <div>
+                <p class="eyebrow">Deployment issue</p>
+                <h2>{{ error_title }}</h2>
+                <p class="support-copy">{{ error_message }}</p>
+                <p class="support-copy">{{ error_hint }}</p>
+            </div>
+        </section>
+
+        <section class="section-block">
+            <section class="detail-card">
+                <p class="eyebrow">Next step</p>
+                <h4>Ship the CSV files or change the data source</h4>
+                <p class="support-copy">
+                    The app expects these local files at runtime:
+                    <code>Data/raw/meal_info.csv</code>,
+                    <code>Data/raw/fulfilment_center_info.csv</code>,
+                    <code>Data/processed/data.csv</code>,
+                    <code>Data/processed/avg_elasticity_per_meal.csv</code>.
+                </p>
+                <p class="support-copy">
+                    On Render, that means those files must be present in the GitHub repo you deploy,
+                    or the application must be updated to load them from another storage location.
+                </p>
+            </section>
+        </section>
+    </main>
+</div>
+{% endblock %}
