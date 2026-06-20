@@ -115,12 +115,12 @@ def build_overview_figures(filtered_data):
         .sort_values("week")
     )
     category_summary = (
-        filtered_data.groupby("category", as_index=False)
+        filtered_data.groupby("category", as_index=False, observed=False)
         .agg(total_orders=("num_orders", "sum"), total_revenue=("revenue", "sum"))
         .sort_values("total_revenue", ascending=False)
     )
     center_summary = (
-        filtered_data.groupby("center_type", as_index=False)
+        filtered_data.groupby("center_type", as_index=False, observed=False)
         .agg(total_orders=("num_orders", "sum"), total_revenue=("revenue", "sum"))
         .sort_values("total_orders", ascending=False)
     )

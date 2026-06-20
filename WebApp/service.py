@@ -21,40 +21,85 @@ DATA_DIR = _resolve_existing_dir([ROOT_DIR / "Data", ROOT_DIR / "data"])
 RAW_DIR = _resolve_existing_dir([DATA_DIR / "raw", DATA_DIR / "Raw"])
 PROCESSED_DIR = _resolve_existing_dir([DATA_DIR / "processed", DATA_DIR / "Processed"])
 
+TRAIN_PATH = RAW_DIR / "train.csv"
 MEAL_INFO_PATH = RAW_DIR / "meal_info.csv"
 CENTER_INFO_PATH = RAW_DIR / "fulfilment_center_info.csv"
-PROCESSED_DATA_PATH = PROCESSED_DIR / "data.csv"
 ELASTICITY_PATH = PROCESSED_DIR / "avg_elasticity_per_meal.csv"
 
 
 @lru_cache(maxsize=1)
 def _load_data_cached() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     required_paths = [
+        TRAIN_PATH,
         MEAL_INFO_PATH,
         CENTER_INFO_PATH,
-        PROCESSED_DATA_PATH,
         ELASTICITY_PATH,
     ]
     missing = [str(path.relative_to(ROOT_DIR)) for path in required_paths if not path.exists()]
     if missing:
         raise FileNotFoundError("Missing required project files: " + ", ".join(missing))
 
-    processed = pd.read_csv(PROCESSED_DATA_PATH)
-    elasticity = pd.read_csv(ELASTICITY_PATH)
-    meals = pd.read_csv(MEAL_INFO_PATH)
-    centers = pd.read_csv(CENTER_INFO_PATH)
+    train = pd.read_csv(
+        TRAIN_PATH,
+        usecols=[
+            "week",
+            "center_id",
+            "meal_id",
+            "checkout_price",
+            "base_price",
+            "emailer_for_promotion",
+            "homepage_featured",
+            "num_orders",
+        ],
+        dtype={
+            "week": "int16",
+            "center_id": "int16",
+            "meal_id": "int16",
+            "checkout_price": "float32",
+            "base_price": "float32",
+            "emailer_for_promotion": "int8",
+            "homepage_featured": "int8",
+            "num_orders": "int32",
+        },
+    )
+    train["revenue"] = (train["num_orders"] * train["checkout_price"]).astype("float32")
+
+    elasticity = pd.read_csv(
+        ELASTICITY_PATH,
+        dtype={
+            "meal_id": "int16",
+            "avg_elasticity": "float32",
+            "median_elasticity": "float32",
+            "observations": "int16",
+        },
+    )
+    meals = pd.read_csv(
+        MEAL_INFO_PATH,
+        dtype={
+            "meal_id": "int16",
+            "category": "category",
+            "cuisine": "category",
+        },
+    )
+    centers = pd.read_csv(
+        CENTER_INFO_PATH,
+        usecols=["center_id", "center_type"],
+        dtype={
+            "center_id": "int16",
+            "center_type": "category",
+        },
+    )
 
     enriched = (
-        processed.merge(meals, on="meal_id", how="left")
-        .merge(centers[["center_id", "center_type"]], on="center_id", how="left")
+        train.merge(meals, on="meal_id", how="left")
+        .merge(centers, on="center_id", how="left")
     )
 
     return enriched, elasticity, meals, centers
 
 
 def load_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    data, elasticity, meals, centers = _load_data_cached()
-    return data.copy(), elasticity.copy(), meals.copy(), centers.copy()
+    return _load_data_cached()
 
 
 def get_filter_metadata() -> dict[str, object]:
@@ -76,7 +121,7 @@ def build_recommendations(
 
     last_week = int(data["week"].max())
     recent_cutoff = max(int(data["week"].min()), last_week - recent_weeks + 1)
-    recent_data = data[data["week"] >= recent_cutoff].copy()
+    recent_data = data.loc[data["week"] >= recent_cutoff, ["meal_id", "week", "num_orders", "checkout_price"]]
 
     recent_weekly_meals = (
         recent_data.groupby(["meal_id", "week"], as_index=False)
@@ -100,7 +145,7 @@ def build_recommendations(
         historical_max_price=("checkout_price", lambda x: x.quantile(0.95)),
     )
 
-    elasticity_table = elasticity[["meal_id", "median_elasticity", "observations"]].copy()
+    elasticity_table = elasticity[["meal_id", "median_elasticity", "observations"]]
     recommendation_data = (
         baseline.merge(price_bounds, on="meal_id", how="left")
         .merge(elasticity_table, on="meal_id", how="left")
@@ -194,15 +239,15 @@ def filter_data(
     week_start: int | None = None,
     week_end: int | None = None,
 ) -> pd.DataFrame:
-    filtered = data.copy()
+    filtered = data
     if category:
-        filtered = filtered[filtered["category"] == category]
+        filtered = filtered.loc[filtered["category"] == category]
     if cuisine:
-        filtered = filtered[filtered["cuisine"] == cuisine]
+        filtered = filtered.loc[filtered["cuisine"] == cuisine]
     if week_start is not None:
-        filtered = filtered[filtered["week"] >= week_start]
+        filtered = filtered.loc[filtered["week"] >= week_start]
     if week_end is not None:
-        filtered = filtered[filtered["week"] <= week_end]
+        filtered = filtered.loc[filtered["week"] <= week_end]
     return filtered
 
 
@@ -211,11 +256,11 @@ def filter_recommendations(
     category: str | None = None,
     cuisine: str | None = None,
 ) -> pd.DataFrame:
-    filtered = recommendations.copy()
+    filtered = recommendations
     if category:
-        filtered = filtered[filtered["category"] == category]
+        filtered = filtered.loc[filtered["category"] == category]
     if cuisine:
-        filtered = filtered[filtered["cuisine"] == cuisine]
+        filtered = filtered.loc[filtered["cuisine"] == cuisine]
     return filtered
 
 
