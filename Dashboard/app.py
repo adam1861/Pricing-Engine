@@ -1,10 +1,10 @@
-from pathlib import Path
-
 import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
+
+from WebApp.service import load_data as load_project_data
 
 
 st.set_page_config(
@@ -14,15 +14,6 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-
-ROOT_DIR = Path(__file__).resolve().parents[1]
-RAW_DIR = ROOT_DIR / "Data" / "raw"
-PROCESSED_DIR = ROOT_DIR / "Data" / "processed"
-
-MEAL_INFO_PATH = RAW_DIR / "meal_info.csv"
-CENTER_INFO_PATH = RAW_DIR / "fulfilment_center_info.csv"
-PROCESSED_DATA_PATH = PROCESSED_DIR / "data.csv"
-ELASTICITY_PATH = PROCESSED_DIR / "avg_elasticity_per_meal.csv"
 
 ACCENT = "#B8522B"
 INK = "#16202A"
@@ -107,29 +98,8 @@ def inject_styles() -> None:
 
 @st.cache_data(show_spinner=False)
 def load_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    required_paths = [
-        MEAL_INFO_PATH,
-        CENTER_INFO_PATH,
-        PROCESSED_DATA_PATH,
-        ELASTICITY_PATH,
-    ]
-    missing = [str(path.relative_to(ROOT_DIR)) for path in required_paths if not path.exists()]
-    if missing:
-        raise FileNotFoundError(
-            "Missing required project files: " + ", ".join(missing)
-        )
-
-    processed = pd.read_csv(PROCESSED_DATA_PATH)
-    elasticity = pd.read_csv(ELASTICITY_PATH)
-    meals = pd.read_csv(MEAL_INFO_PATH)
-    centers = pd.read_csv(CENTER_INFO_PATH)
-
-    enriched = (
-        processed.merge(meals, on="meal_id", how="left")
-        .merge(centers[["center_id", "center_type"]], on="center_id", how="left")
-    )
-
-    return enriched, elasticity, meals, centers
+    data, elasticity, meals, centers = load_project_data()
+    return data.copy(), elasticity.copy(), meals.copy(), centers.copy()
 
 
 def format_int(value: float) -> str:

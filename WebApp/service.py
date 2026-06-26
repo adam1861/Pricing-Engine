@@ -27,13 +27,54 @@ CENTER_INFO_PATH = RAW_DIR / "fulfilment_center_info.csv"
 ELASTICITY_PATH = PROCESSED_DIR / "avg_elasticity_per_meal.csv"
 
 
+def _build_elasticity_table(train: pd.DataFrame) -> pd.DataFrame:
+    weekly_meals = (
+        train.groupby(["meal_id", "week"], as_index=False)
+        .agg(
+            num_orders=("num_orders", "sum"),
+            checkout_price=("checkout_price", "mean"),
+        )
+        .sort_values(["meal_id", "week"])
+    )
+    weekly_meals["pct_change_orders"] = (
+        weekly_meals.groupby("meal_id")["num_orders"].pct_change()
+    )
+    weekly_meals["pct_change_price"] = (
+        weekly_meals.groupby("meal_id")["checkout_price"].pct_change()
+    )
+    weekly_meals["elasticity"] = (
+        weekly_meals["pct_change_orders"] / weekly_meals["pct_change_price"]
+    )
+    weekly_meals["elasticity"] = weekly_meals["elasticity"].replace(
+        [np.inf, -np.inf],
+        np.nan,
+    )
+
+    elasticity = (
+        weekly_meals.dropna(subset=["elasticity"])
+        .groupby("meal_id", as_index=False)
+        .agg(
+            avg_elasticity=("elasticity", "mean"),
+            median_elasticity=("elasticity", "median"),
+            observations=("elasticity", "count"),
+        )
+    )
+
+    all_meals = train[["meal_id"]].drop_duplicates().sort_values("meal_id")
+    elasticity = all_meals.merge(elasticity, on="meal_id", how="left")
+    elasticity["observations"] = elasticity["observations"].fillna(0).astype("int16")
+    for column in ["avg_elasticity", "median_elasticity"]:
+        elasticity[column] = elasticity[column].astype("float32")
+    elasticity["meal_id"] = elasticity["meal_id"].astype("int16")
+    return elasticity
+
+
 @lru_cache(maxsize=1)
 def _load_data_cached() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     required_paths = [
         TRAIN_PATH,
         MEAL_INFO_PATH,
         CENTER_INFO_PATH,
-        ELASTICITY_PATH,
     ]
     missing = [str(path.relative_to(ROOT_DIR)) for path in required_paths if not path.exists()]
     if missing:
@@ -64,15 +105,18 @@ def _load_data_cached() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.Da
     )
     train["revenue"] = (train["num_orders"] * train["checkout_price"]).astype("float32")
 
-    elasticity = pd.read_csv(
-        ELASTICITY_PATH,
-        dtype={
-            "meal_id": "int16",
-            "avg_elasticity": "float32",
-            "median_elasticity": "float32",
-            "observations": "int16",
-        },
-    )
+    if ELASTICITY_PATH.exists():
+        elasticity = pd.read_csv(
+            ELASTICITY_PATH,
+            dtype={
+                "meal_id": "int16",
+                "avg_elasticity": "float32",
+                "median_elasticity": "float32",
+                "observations": "int16",
+            },
+        )
+    else:
+        elasticity = _build_elasticity_table(train)
     meals = pd.read_csv(
         MEAL_INFO_PATH,
         dtype={

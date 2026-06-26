@@ -273,8 +273,8 @@ def index(
                 "error_title": "Project data files are missing on the server",
                 "error_message": str(exc),
                 "error_hint": (
-                    "Render deployed the application code, but the CSV files expected in "
-                    "Data/raw and Data/processed were not included in the deployed repo."
+                    "Render deployed the application code, but the required raw CSV files "
+                    "were not included in the deployed repo."
                 ),
             },
             status_code=500,

@@ -18,14 +18,14 @@
                 <h4>Ship the CSV files or change the data source</h4>
                 <p class="support-copy">
                     The app expects these local files at runtime:
+                    <code>Data/raw/train.csv</code>,
                     <code>Data/raw/meal_info.csv</code>,
-                    <code>Data/raw/fulfilment_center_info.csv</code>,
-                    <code>Data/processed/data.csv</code>,
-                    <code>Data/processed/avg_elasticity_per_meal.csv</code>.
+                    <code>Data/raw/fulfilment_center_info.csv</code>.
                 </p>
                 <p class="support-copy">
-                    On Render, that means those files must be present in the GitHub repo you deploy,
-                    or the application must be updated to load them from another storage location.
+                    If <code>Data/processed/avg_elasticity_per_meal.csv</code> is absent, the app now
+                    rebuilds that cache from the raw training data. On Render, the raw files must still
+                    be present in the deployed repo, or the application must load them from another storage location.
                 </p>
             </section>
         </section>
