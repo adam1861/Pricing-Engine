@@ -141,4 +141,4 @@ streamlit run Dashboard/app.py
 - The FastAPI app only requires the raw CSV files in `Data/raw/`. If `Data/processed/avg_elasticity_per_meal.csv` is missing, it is rebuilt from the raw training data at runtime.
 - The Streamlit dashboard now uses the same raw-data loading path as the FastAPI app, so `Data/processed/data.csv` is optional local output rather than a runtime dependency.
 - The raw dataset is intentionally not committed to Git. Download it from Kaggle and keep it local.
-- Some notebook cells currently use absolute Windows paths. If you rerun notebooks on another machine, update those paths to your local project location or convert them to relative paths.
+- The notebooks now use repo-relative `Data/raw/` and `Data/processed/` paths, so they can be rerun on another machine without editing absolute local paths.
