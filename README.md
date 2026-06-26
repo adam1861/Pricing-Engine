@@ -58,10 +58,6 @@ Current dataset summary:
   Merges raw files, one-hot encodes categories, and writes `Data/processed/data.csv`
 - `02_eda.ipynb`
   Basic exploratory data analysis on the processed dataset
-- `03_feature_engineering.ipynb`
-  Placeholder heading only
-- `04_demand_forecasting.ipynb`
-  Placeholder heading only
 - `05_price_elasticity.ipynb`
   Aggregates data by `meal_id x week` and writes `Data/processed/avg_elasticity_per_meal.csv`
 - `06_price_optimization.ipynb`
