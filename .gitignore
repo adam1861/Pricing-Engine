@@ -11,4 +11,6 @@ Thumbs.db
 .DS_Store
 Data/processed/*.csv
 data/processed/*.csv
+Data/raw/*.csv
+data/raw/*.csv
 rapport stage ouvrier.docx

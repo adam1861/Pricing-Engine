@@ -5,14 +5,9 @@ Notebook-driven pricing analysis for a weekly food demand dataset. The project p
 ## What Is In This Repo
 
 - `Data/raw/`
-  Source CSV files:
-  - `train.csv`
-  - `meal_info.csv`
-  - `fulfilment_center_info.csv`
+  Local dataset directory expected at runtime. The CSV files are not committed to Git.
 - `Data/processed/`
-  Generated analysis files:
-  - `data.csv`
-  - `avg_elasticity_per_meal.csv`
+  Local generated analysis outputs such as `data.csv` and `avg_elasticity_per_meal.csv`
 - `Notebooks/`
   Analysis notebooks used in the project
 - `WebApp/main.py`
@@ -23,6 +18,20 @@ Notebook-driven pricing analysis for a weekly food demand dataset. The project p
   HTML templates and styling for the FastAPI app
 - `Dashboard/app.py`
   Legacy Streamlit dashboard kept as a fallback
+
+## Dataset Source
+
+This project uses the Kaggle Food Demand Forecasting dataset:
+
+`https://www.kaggle.com/datasets/arashnic/food-demand`
+
+Download the dataset manually from Kaggle, then place these files in `Data/raw/`:
+
+- `train.csv`
+- `meal_info.csv`
+- `fulfilment_center_info.csv`
+
+The optional Kaggle files such as `test_QoiMO9B.csv` and `sample_submission_hSlSoT6.csv` are not required by the app.
 
 ## Dataset Grain
 
@@ -77,6 +86,13 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
+Create the local data folders if needed and add the Kaggle CSV files before running the app:
+
+```bash
+mkdir Data\raw
+mkdir Data\processed
+```
+
 ## Run The Web Interface
 
 ```bash
@@ -128,4 +144,5 @@ streamlit run Dashboard/app.py
 
 - The FastAPI app only requires the raw CSV files in `Data/raw/`. If `Data/processed/avg_elasticity_per_meal.csv` is missing, it is rebuilt from the raw training data at runtime.
 - The Streamlit dashboard now uses the same raw-data loading path as the FastAPI app, so `Data/processed/data.csv` is optional local output rather than a runtime dependency.
+- The raw dataset is intentionally not committed to Git. Download it from Kaggle and keep it local.
 - Some notebook cells currently use absolute Windows paths. If you rerun notebooks on another machine, update those paths to your local project location or convert them to relative paths.
