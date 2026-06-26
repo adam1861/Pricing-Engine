@@ -1,6 +1,6 @@
 # Repository Cleanup Checklist
 
-- [ ] 1. Purge dataset files from the full Git history
+- [x] 1. Purge dataset files from the full Git history
 - [ ] 2. Convert notebooks to use repo-relative paths
 - [ ] 3. Add automated tests for the pricing logic
 - [ ] 4. Add CI and code-quality tooling
