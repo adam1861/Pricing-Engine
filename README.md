@@ -181,13 +181,10 @@ Current service settings:
 - health check path: `/health`
 - Python version: `3.12.0`
 
-## Optional Legacy Dashboard
-
-The repository still contains `Dashboard/app.py` as a legacy Streamlit version during the current cleanup pass. The target direction is FastAPI-only.
-
 ## Notes
 
 - The raw dataset is intentionally not committed to Git.
 - The FastAPI app only requires the raw CSV files in `Data/raw/`.
 - If `Data/processed/avg_elasticity_per_meal.csv` is missing, the app rebuilds that cache from the raw training data at runtime.
 - `requirements.txt` is a thin production install wrapper; dependency definitions live in `pyproject.toml`.
+- The repository is FastAPI-only; the previous Streamlit dashboard has been removed.

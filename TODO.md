@@ -7,4 +7,4 @@
 - [x] 5. Consolidate dependency management into one source of truth
 - [x] 6. Polish the README for a project-ready GitHub presentation
 - [x] 7. Add repository metadata files such as `LICENSE` and `CONTRIBUTING.md`
-- [ ] 8. Remove the legacy Streamlit dashboard and keep FastAPI only
+- [x] 8. Remove the legacy Streamlit dashboard and keep FastAPI only

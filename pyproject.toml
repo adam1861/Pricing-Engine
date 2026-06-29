@@ -18,7 +18,6 @@ dependencies = [
     "plotly>=5.22",
     "scikit-learn>=1.3",
     "seaborn>=0.12",
-    "streamlit>=1.32",
     "uvicorn>=0.30",
 ]
 
@@ -44,7 +43,7 @@ include = ["WebApp*"]
 WebApp = ["templates/*.html", "static/*.css"]
 
 [tool.ruff]
-extend-exclude = ["Dashboard", "Notebooks"]
+extend-exclude = ["Notebooks"]
 line-length = 100
 target-version = "py312"
 
