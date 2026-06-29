@@ -86,6 +86,8 @@ def test_load_data_rebuilds_elasticity_from_raw_files(
     ).to_csv(raw_dir / "fulfilment_center_info.csv", index=False)
 
     monkeypatch.setattr(service, "ROOT_DIR", tmp_path)
+    monkeypatch.setattr(service, "APP_DATA_ARTIFACT_PATH", tmp_path / "missing-app-data.pkl.gz")
+    monkeypatch.setattr(service, "ELASTICITY_ARTIFACT_PATH", tmp_path / "missing-elasticity.pkl.gz")
     monkeypatch.setattr(service, "TRAIN_PATH", raw_dir / "train.csv")
     monkeypatch.setattr(service, "MEAL_INFO_PATH", raw_dir / "meal_info.csv")
     monkeypatch.setattr(service, "CENTER_INFO_PATH", raw_dir / "fulfilment_center_info.csv")
@@ -100,6 +102,61 @@ def test_load_data_rebuilds_elasticity_from_raw_files(
     assert len(centers) == 2
     assert set(elasticity["meal_id"]) == {1, 2}
     assert (processed_dir / "avg_elasticity_per_meal.csv").exists() is False
+
+
+def test_load_data_prefers_repo_artifacts(tmp_path: Path, monkeypatch) -> None:
+    artifact_dir = tmp_path / "Data" / "artifacts"
+    artifact_dir.mkdir(parents=True)
+    app_data_path = artifact_dir / "app_data.pkl.gz"
+    elasticity_path = artifact_dir / "elasticity.pkl.gz"
+
+    expected_data = pd.DataFrame(
+        [
+            {
+                "week": 1,
+                "center_id": 10,
+                "meal_id": 1,
+                "checkout_price": 10.0,
+                "base_price": 12.0,
+                "emailer_for_promotion": 0,
+                "homepage_featured": 0,
+                "num_orders": 100,
+                "revenue": 1000.0,
+                "category": "Main",
+                "cuisine": "Italian",
+                "center_type": "TYPE_A",
+            }
+        ]
+    )
+    expected_elasticity = pd.DataFrame(
+        [
+            {
+                "meal_id": 1,
+                "avg_elasticity": -1.0,
+                "median_elasticity": -1.0,
+                "observations": 2,
+            }
+        ]
+    )
+
+    expected_data.to_pickle(app_data_path, compression="gzip")
+    expected_elasticity.to_pickle(elasticity_path, compression="gzip")
+
+    monkeypatch.setattr(service, "APP_DATA_ARTIFACT_PATH", app_data_path)
+    monkeypatch.setattr(service, "ELASTICITY_ARTIFACT_PATH", elasticity_path)
+    monkeypatch.setattr(service, "TRAIN_PATH", tmp_path / "missing-train.csv")
+    monkeypatch.setattr(service, "MEAL_INFO_PATH", tmp_path / "missing-meal.csv")
+    monkeypatch.setattr(service, "CENTER_INFO_PATH", tmp_path / "missing-center.csv")
+    service._load_data_cached.cache_clear()
+
+    data, elasticity, meals, centers = service.load_data()
+
+    assert data.to_dict(orient="records") == expected_data.to_dict(orient="records")
+    assert elasticity.to_dict(orient="records") == expected_elasticity.to_dict(orient="records")
+    assert meals.to_dict(orient="records") == [
+        {"meal_id": 1, "category": "Main", "cuisine": "Italian"}
+    ]
+    assert centers.to_dict(orient="records") == [{"center_id": 10, "center_type": "TYPE_A"}]
 
 
 def test_load_data_downloads_raw_files_from_env_urls(
@@ -143,6 +200,8 @@ def test_load_data_downloads_raw_files_from_env_urls(
     ).to_csv(source_dir / "fulfilment_center_info.csv", index=False)
 
     monkeypatch.setattr(service, "ROOT_DIR", tmp_path)
+    monkeypatch.setattr(service, "APP_DATA_ARTIFACT_PATH", tmp_path / "missing-app-data.pkl.gz")
+    monkeypatch.setattr(service, "ELASTICITY_ARTIFACT_PATH", tmp_path / "missing-elasticity.pkl.gz")
     monkeypatch.setattr(service, "TRAIN_PATH", raw_dir / "train.csv")
     monkeypatch.setattr(service, "MEAL_INFO_PATH", raw_dir / "meal_info.csv")
     monkeypatch.setattr(service, "CENTER_INFO_PATH", raw_dir / "fulfilment_center_info.csv")

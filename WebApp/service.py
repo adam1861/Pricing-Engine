@@ -23,11 +23,14 @@ def _resolve_existing_dir(candidates: list[Path]) -> Path:
 DATA_DIR = _resolve_existing_dir([ROOT_DIR / "Data", ROOT_DIR / "data"])
 RAW_DIR = _resolve_existing_dir([DATA_DIR / "raw", DATA_DIR / "Raw"])
 PROCESSED_DIR = _resolve_existing_dir([DATA_DIR / "processed", DATA_DIR / "Processed"])
+ARTIFACTS_DIR = _resolve_existing_dir([DATA_DIR / "artifacts", DATA_DIR / "Artifacts"])
 
 TRAIN_PATH = RAW_DIR / "train.csv"
 MEAL_INFO_PATH = RAW_DIR / "meal_info.csv"
 CENTER_INFO_PATH = RAW_DIR / "fulfilment_center_info.csv"
 ELASTICITY_PATH = PROCESSED_DIR / "avg_elasticity_per_meal.csv"
+APP_DATA_ARTIFACT_PATH = ARTIFACTS_DIR / "app_data.pkl.gz"
+ELASTICITY_ARTIFACT_PATH = ARTIFACTS_DIR / "elasticity.pkl.gz"
 DATA_BASE_URL_ENV = "DATA_BASE_URL"
 
 
@@ -79,6 +82,31 @@ def _required_runtime_files() -> list[tuple[Path, str, str]]:
         (MEAL_INFO_PATH, "MEAL_INFO_CSV_URL", "meal_info.csv"),
         (CENTER_INFO_PATH, "CENTER_INFO_CSV_URL", "fulfilment_center_info.csv"),
     ]
+
+
+def _artifact_paths() -> list[Path]:
+    return [APP_DATA_ARTIFACT_PATH, ELASTICITY_ARTIFACT_PATH]
+
+
+def _load_repo_artifacts() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame] | None:
+    if not all(path.exists() for path in _artifact_paths()):
+        return None
+
+    data = pd.read_pickle(APP_DATA_ARTIFACT_PATH)
+    elasticity = pd.read_pickle(ELASTICITY_ARTIFACT_PATH)
+    meals = (
+        data[["meal_id", "category", "cuisine"]]
+        .drop_duplicates()
+        .sort_values("meal_id")
+        .reset_index(drop=True)
+    )
+    centers = (
+        data[["center_id", "center_type"]]
+        .drop_duplicates()
+        .sort_values("center_id")
+        .reset_index(drop=True)
+    )
+    return data, elasticity, meals, centers
 
 
 def _resolve_remote_url(filename: str, specific_env_var: str) -> str | None:
@@ -135,6 +163,10 @@ def _ensure_required_runtime_files() -> None:
 
 @lru_cache(maxsize=1)
 def _load_data_cached() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    artifact_bundle = _load_repo_artifacts()
+    if artifact_bundle is not None:
+        return artifact_bundle
+
     _ensure_required_runtime_files()
 
     required_paths = [path for path, _, _ in _required_runtime_files()]

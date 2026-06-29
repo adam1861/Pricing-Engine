@@ -24,6 +24,10 @@ This repo turns exploratory pricing work into something closer to a deployable p
 
 ```text
 .
+|-- Data/
+|   `-- artifacts/
+|       |-- app_data.pkl.gz
+|       `-- elasticity.pkl.gz
 |-- WebApp/
 |   |-- main.py
 |   |-- service.py
@@ -57,6 +61,8 @@ Download the dataset manually and place these files in `Data/raw/`:
 - `fulfilment_center_info.csv`
 
 Optional Kaggle files such as `test_QoiMO9B.csv` and `sample_submission_hSlSoT6.csv` are not required by the application.
+
+For deployment, the repository already includes compact runtime artifacts under `Data/artifacts/`, so Render does not need the raw Kaggle CSV files.
 
 ## Dataset Grain
 
@@ -181,20 +187,22 @@ Current service settings:
 - health check path: `/health`
 - Python version: `3.12.0`
 
-Because the raw dataset is not committed to Git, a Render deployment also needs a runtime data source. You can provide it in either of these ways:
+The default Render deployment now works from the committed artifact bundle in `Data/artifacts/`.
 
-1. Mount the raw CSV files into the deployed environment.
-2. Set `DATA_BASE_URL` to a public folder URL containing:
-   `train.csv`, `meal_info.csv`, and `fulfilment_center_info.csv`
-3. Or set file-specific env vars:
-   `TRAIN_CSV_URL`, `MEAL_INFO_CSV_URL`, `CENTER_INFO_CSV_URL`
+Optional fallback:
 
-If `Data/processed/avg_elasticity_per_meal.csv` is missing, the app rebuilds it automatically from the raw training data after the raw CSVs are available.
+- if you remove the artifact bundle, the app can still work from raw CSV files
+- or from runtime URL env vars:
+  `DATA_BASE_URL`,
+  `TRAIN_CSV_URL`,
+  `MEAL_INFO_CSV_URL`,
+  `CENTER_INFO_CSV_URL`
 
 ## Notes
 
 - The raw dataset is intentionally not committed to Git.
-- The FastAPI app only requires the raw CSV files in `Data/raw/`.
+- The deployed FastAPI app prefers the committed artifact bundle in `Data/artifacts/`.
+- The raw CSV files in `Data/raw/` are only needed to regenerate artifacts or rerun the notebook pipeline.
 - If `Data/processed/avg_elasticity_per_meal.csv` is missing, the app rebuilds that cache from the raw training data at runtime.
 - `requirements.txt` is a thin production install wrapper; dependency definitions live in `pyproject.toml`.
 - The repository is FastAPI-only; the previous Streamlit dashboard has been removed.
