@@ -102,6 +102,65 @@ def test_load_data_rebuilds_elasticity_from_raw_files(
     assert (processed_dir / "avg_elasticity_per_meal.csv").exists() is False
 
 
+def test_load_data_downloads_raw_files_from_env_urls(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    source_dir = tmp_path / "source"
+    source_dir.mkdir(parents=True)
+    raw_dir = tmp_path / "Data" / "raw"
+    processed_dir = tmp_path / "Data" / "processed"
+
+    pd.DataFrame(
+        [
+            {
+                "week": 1,
+                "center_id": 10,
+                "meal_id": 1,
+                "checkout_price": 10.0,
+                "base_price": 12.0,
+                "emailer_for_promotion": 0,
+                "homepage_featured": 0,
+                "num_orders": 100,
+            },
+            {
+                "week": 2,
+                "center_id": 10,
+                "meal_id": 1,
+                "checkout_price": 12.0,
+                "base_price": 12.0,
+                "emailer_for_promotion": 1,
+                "homepage_featured": 0,
+                "num_orders": 80,
+            },
+        ]
+    ).to_csv(source_dir / "train.csv", index=False)
+    pd.DataFrame(
+        [{"meal_id": 1, "category": "Main", "cuisine": "Italian"}]
+    ).to_csv(source_dir / "meal_info.csv", index=False)
+    pd.DataFrame(
+        [{"center_id": 10, "center_type": "TYPE_A"}]
+    ).to_csv(source_dir / "fulfilment_center_info.csv", index=False)
+
+    monkeypatch.setattr(service, "ROOT_DIR", tmp_path)
+    monkeypatch.setattr(service, "TRAIN_PATH", raw_dir / "train.csv")
+    monkeypatch.setattr(service, "MEAL_INFO_PATH", raw_dir / "meal_info.csv")
+    monkeypatch.setattr(service, "CENTER_INFO_PATH", raw_dir / "fulfilment_center_info.csv")
+    monkeypatch.setattr(service, "ELASTICITY_PATH", processed_dir / "avg_elasticity_per_meal.csv")
+    monkeypatch.setenv("DATA_BASE_URL", source_dir.as_uri() + "/")
+    service._load_data_cached.cache_clear()
+
+    data, elasticity, meals, centers = service.load_data()
+
+    assert len(data) == 2
+    assert len(elasticity) == 1
+    assert len(meals) == 1
+    assert len(centers) == 1
+    assert raw_dir.joinpath("train.csv").exists()
+    assert raw_dir.joinpath("meal_info.csv").exists()
+    assert raw_dir.joinpath("fulfilment_center_info.csv").exists()
+
+
 def test_build_recommendations_and_price_curve(monkeypatch) -> None:
     data = pd.DataFrame(
         [

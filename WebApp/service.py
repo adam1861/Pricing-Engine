@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import os
+import shutil
 from functools import lru_cache
 from pathlib import Path
+from urllib.parse import urljoin
+from urllib.request import urlopen
 
 import numpy as np
 import pandas as pd
@@ -24,6 +28,7 @@ TRAIN_PATH = RAW_DIR / "train.csv"
 MEAL_INFO_PATH = RAW_DIR / "meal_info.csv"
 CENTER_INFO_PATH = RAW_DIR / "fulfilment_center_info.csv"
 ELASTICITY_PATH = PROCESSED_DIR / "avg_elasticity_per_meal.csv"
+DATA_BASE_URL_ENV = "DATA_BASE_URL"
 
 
 def _build_elasticity_table(train: pd.DataFrame) -> pd.DataFrame:
@@ -68,13 +73,71 @@ def _build_elasticity_table(train: pd.DataFrame) -> pd.DataFrame:
     return elasticity
 
 
+def _required_runtime_files() -> list[tuple[Path, str, str]]:
+    return [
+        (TRAIN_PATH, "TRAIN_CSV_URL", "train.csv"),
+        (MEAL_INFO_PATH, "MEAL_INFO_CSV_URL", "meal_info.csv"),
+        (CENTER_INFO_PATH, "CENTER_INFO_CSV_URL", "fulfilment_center_info.csv"),
+    ]
+
+
+def _resolve_remote_url(filename: str, specific_env_var: str) -> str | None:
+    specific_url = os.getenv(specific_env_var)
+    if specific_url:
+        return specific_url
+
+    base_url = os.getenv(DATA_BASE_URL_ENV)
+    if not base_url:
+        return None
+
+    return urljoin(base_url.rstrip("/") + "/", filename)
+
+
+def _download_runtime_file(url: str, destination: Path) -> None:
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with urlopen(url) as response, destination.open("wb") as target:
+        shutil.copyfileobj(response, target)
+
+
+def _ensure_required_runtime_files() -> None:
+    missing_local: list[str] = []
+    download_failures: list[str] = []
+
+    for path, specific_env_var, filename in _required_runtime_files():
+        if path.exists():
+            continue
+
+        remote_url = _resolve_remote_url(filename, specific_env_var)
+        if not remote_url:
+            missing_local.append(str(path.relative_to(ROOT_DIR)))
+            continue
+
+        try:
+            _download_runtime_file(remote_url, path)
+        except Exception as exc:  # pragma: no cover - exercised through caller behavior
+            download_failures.append(f"{path.relative_to(ROOT_DIR)} from {remote_url} ({exc})")
+
+    if not missing_local and not download_failures:
+        return
+
+    guidance = (
+        "Provide the raw CSV files locally or set DATA_BASE_URL, or the specific "
+        "TRAIN_CSV_URL / MEAL_INFO_CSV_URL / CENTER_INFO_CSV_URL environment variables."
+    )
+    messages: list[str] = []
+    if missing_local:
+        messages.append("Missing required project files: " + ", ".join(missing_local))
+    if download_failures:
+        messages.append("Failed to download runtime files: " + ", ".join(download_failures))
+    messages.append(guidance)
+    raise FileNotFoundError(" ".join(messages))
+
+
 @lru_cache(maxsize=1)
 def _load_data_cached() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    required_paths = [
-        TRAIN_PATH,
-        MEAL_INFO_PATH,
-        CENTER_INFO_PATH,
-    ]
+    _ensure_required_runtime_files()
+
+    required_paths = [path for path, _, _ in _required_runtime_files()]
     missing = [str(path.relative_to(ROOT_DIR)) for path in required_paths if not path.exists()]
     if missing:
         raise FileNotFoundError("Missing required project files: " + ", ".join(missing))

@@ -181,6 +181,16 @@ Current service settings:
 - health check path: `/health`
 - Python version: `3.12.0`
 
+Because the raw dataset is not committed to Git, a Render deployment also needs a runtime data source. You can provide it in either of these ways:
+
+1. Mount the raw CSV files into the deployed environment.
+2. Set `DATA_BASE_URL` to a public folder URL containing:
+   `train.csv`, `meal_info.csv`, and `fulfilment_center_info.csv`
+3. Or set file-specific env vars:
+   `TRAIN_CSV_URL`, `MEAL_INFO_CSV_URL`, `CENTER_INFO_CSV_URL`
+
+If `Data/processed/avg_elasticity_per_meal.csv` is missing, the app rebuilds it automatically from the raw training data after the raw CSVs are available.
+
 ## Notes
 
 - The raw dataset is intentionally not committed to Git.
