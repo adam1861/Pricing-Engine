@@ -6,7 +6,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-
 ROOT_DIR = Path(__file__).resolve().parents[1]
 
 
@@ -165,7 +164,10 @@ def build_recommendations(
 
     last_week = int(data["week"].max())
     recent_cutoff = max(int(data["week"].min()), last_week - recent_weeks + 1)
-    recent_data = data.loc[data["week"] >= recent_cutoff, ["meal_id", "week", "num_orders", "checkout_price"]]
+    recent_data = data.loc[
+        data["week"] >= recent_cutoff,
+        ["meal_id", "week", "num_orders", "checkout_price"],
+    ]
 
     recent_weekly_meals = (
         recent_data.groupby(["meal_id", "week"], as_index=False)
@@ -204,8 +206,12 @@ def build_recommendations(
         fallback_elasticity
     )
     recommendation_data["observations"] = recommendation_data["observations"].fillna(0).astype(int)
-    recommendation_data["change_min_price"] = recommendation_data["current_price"] * (1 - max_change)
-    recommendation_data["change_max_price"] = recommendation_data["current_price"] * (1 + max_change)
+    recommendation_data["change_min_price"] = (
+        recommendation_data["current_price"] * (1 - max_change)
+    )
+    recommendation_data["change_max_price"] = (
+        recommendation_data["current_price"] * (1 + max_change)
+    )
     recommendation_data["min_allowed_price"] = recommendation_data[
         ["historical_min_price", "change_min_price"]
     ].max(axis=1)

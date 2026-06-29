@@ -105,18 +105,88 @@ def test_load_data_rebuilds_elasticity_from_raw_files(
 def test_build_recommendations_and_price_curve(monkeypatch) -> None:
     data = pd.DataFrame(
         [
-            {"week": 1, "center_id": 10, "meal_id": 1, "checkout_price": 10.0, "num_orders": 100, "revenue": 1000.0, "category": "Main", "cuisine": "Italian", "center_type": "TYPE_A"},
-            {"week": 2, "center_id": 10, "meal_id": 1, "checkout_price": 11.0, "num_orders": 95, "revenue": 1045.0, "category": "Main", "cuisine": "Italian", "center_type": "TYPE_A"},
-            {"week": 3, "center_id": 10, "meal_id": 1, "checkout_price": 12.0, "num_orders": 90, "revenue": 1080.0, "category": "Main", "cuisine": "Italian", "center_type": "TYPE_A"},
-            {"week": 1, "center_id": 20, "meal_id": 2, "checkout_price": 8.0, "num_orders": 60, "revenue": 480.0, "category": "Snack", "cuisine": "Indian", "center_type": "TYPE_B"},
-            {"week": 2, "center_id": 20, "meal_id": 2, "checkout_price": 8.5, "num_orders": 58, "revenue": 493.0, "category": "Snack", "cuisine": "Indian", "center_type": "TYPE_B"},
-            {"week": 3, "center_id": 20, "meal_id": 2, "checkout_price": 9.0, "num_orders": 55, "revenue": 495.0, "category": "Snack", "cuisine": "Indian", "center_type": "TYPE_B"},
+            {
+                "week": 1,
+                "center_id": 10,
+                "meal_id": 1,
+                "checkout_price": 10.0,
+                "num_orders": 100,
+                "revenue": 1000.0,
+                "category": "Main",
+                "cuisine": "Italian",
+                "center_type": "TYPE_A",
+            },
+            {
+                "week": 2,
+                "center_id": 10,
+                "meal_id": 1,
+                "checkout_price": 11.0,
+                "num_orders": 95,
+                "revenue": 1045.0,
+                "category": "Main",
+                "cuisine": "Italian",
+                "center_type": "TYPE_A",
+            },
+            {
+                "week": 3,
+                "center_id": 10,
+                "meal_id": 1,
+                "checkout_price": 12.0,
+                "num_orders": 90,
+                "revenue": 1080.0,
+                "category": "Main",
+                "cuisine": "Italian",
+                "center_type": "TYPE_A",
+            },
+            {
+                "week": 1,
+                "center_id": 20,
+                "meal_id": 2,
+                "checkout_price": 8.0,
+                "num_orders": 60,
+                "revenue": 480.0,
+                "category": "Snack",
+                "cuisine": "Indian",
+                "center_type": "TYPE_B",
+            },
+            {
+                "week": 2,
+                "center_id": 20,
+                "meal_id": 2,
+                "checkout_price": 8.5,
+                "num_orders": 58,
+                "revenue": 493.0,
+                "category": "Snack",
+                "cuisine": "Indian",
+                "center_type": "TYPE_B",
+            },
+            {
+                "week": 3,
+                "center_id": 20,
+                "meal_id": 2,
+                "checkout_price": 9.0,
+                "num_orders": 55,
+                "revenue": 495.0,
+                "category": "Snack",
+                "cuisine": "Indian",
+                "center_type": "TYPE_B",
+            },
         ]
     )
     elasticity = pd.DataFrame(
         [
-            {"meal_id": 1, "avg_elasticity": -1.0, "median_elasticity": -1.0, "observations": 2},
-            {"meal_id": 2, "avg_elasticity": np.nan, "median_elasticity": np.nan, "observations": 0},
+            {
+                "meal_id": 1,
+                "avg_elasticity": -1.0,
+                "median_elasticity": -1.0,
+                "observations": 2,
+            },
+            {
+                "meal_id": 2,
+                "avg_elasticity": np.nan,
+                "median_elasticity": np.nan,
+                "observations": 0,
+            },
         ]
     )
     meals = pd.DataFrame(
@@ -149,7 +219,12 @@ def test_build_recommendations_and_price_curve(monkeypatch) -> None:
 
     curve = service.build_price_curve(recommendations, meal_id=1)
     assert len(curve) == 5
-    assert set(curve.columns) == {"candidate_price", "predicted_orders", "expected_revenue", "meal_id"}
+    assert set(curve.columns) == {
+        "candidate_price",
+        "predicted_orders",
+        "expected_revenue",
+        "meal_id",
+    }
 
 
 def test_filter_helpers_reduce_rows_without_copying_extra_columns() -> None:
@@ -180,7 +255,9 @@ def test_filter_helpers_reduce_rows_without_copying_extra_columns() -> None:
         cuisine="Indian",
     )
 
-    assert filtered_data.to_dict(orient="records") == [{"week": 2, "category": "Main", "cuisine": "Indian"}]
+    assert filtered_data.to_dict(orient="records") == [
+        {"week": 2, "category": "Main", "cuisine": "Indian"}
+    ]
     assert filtered_recommendations.to_dict(orient="records") == [
         {"meal_id": 2, "category": "Snack", "cuisine": "Indian"}
     ]

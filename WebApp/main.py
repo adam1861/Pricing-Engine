@@ -5,11 +5,11 @@ from pathlib import Path
 
 import plotly.express as px
 import plotly.graph_objects as go
-from plotly.io import to_html
 from fastapi import FastAPI, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from plotly.io import to_html
 
 from WebApp.service import (
     build_price_curve,
@@ -19,7 +19,6 @@ from WebApp.service import (
     get_filter_metadata,
     load_data,
 )
-
 
 APP_DIR = Path(__file__).resolve().parent
 TEMPLATES_DIR = APP_DIR / "templates"
@@ -106,7 +105,10 @@ def fig_to_html(fig: go.Figure) -> str:
 
 def build_overview_figures(filtered_data):
     if filtered_data.empty:
-        empty = build_empty_figure("No data in current scope", "Adjust the filters to bring rows back into scope.")
+        empty = build_empty_figure(
+            "No data in current scope",
+            "Adjust the filters to bring rows back into scope.",
+        )
         return fig_to_html(empty), fig_to_html(empty), fig_to_html(empty)
 
     weekly_summary = (
@@ -149,7 +151,10 @@ def build_overview_figures(filtered_data):
         color="total_revenue",
         color_continuous_scale=[SAND, ACCENT],
     )
-    category_fig.update_layout(coloraxis_showscale=False, yaxis=dict(categoryorder="total ascending"))
+    category_fig.update_layout(
+        coloraxis_showscale=False,
+        yaxis=dict(categoryorder="total ascending"),
+    )
     category_fig.update_traces(
         hovertemplate="Category %{y}<br>Revenue %{x:,.2f}<extra></extra>"
     )
@@ -172,9 +177,15 @@ def build_overview_figures(filtered_data):
     return fig_to_html(weekly_fig), fig_to_html(category_fig), fig_to_html(center_fig)
 
 
-def build_curve_figure(filtered_recommendations, selected_meal: int | None) -> tuple[str, dict[str, str] | None]:
+def build_curve_figure(
+    filtered_recommendations,
+    selected_meal: int | None,
+) -> tuple[str, dict[str, str] | None]:
     if filtered_recommendations.empty or selected_meal is None:
-        empty = build_empty_figure("Recommendation curve", "No recommendation is available for the current filter set.")
+        empty = build_empty_figure(
+            "Recommendation curve",
+            "No recommendation is available for the current filter set.",
+        )
         return fig_to_html(empty), None
 
     meal_row = filtered_recommendations.loc[
@@ -327,9 +338,15 @@ def index(
     total_rows = len(filtered_data)
     total_meals = filtered_data["meal_id"].nunique() if not filtered_data.empty else 0
 
-    uplift_sum = filtered_recommendations["revenue_uplift"].sum() if not filtered_recommendations.empty else 0.0
+    uplift_sum = (
+        filtered_recommendations["revenue_uplift"].sum()
+        if not filtered_recommendations.empty
+        else 0.0
+    )
     current_revenue_sum = (
-        filtered_recommendations["current_revenue"].sum() if not filtered_recommendations.empty else 0.0
+        filtered_recommendations["current_revenue"].sum()
+        if not filtered_recommendations.empty
+        else 0.0
     )
     projected_revenue_sum = (
         filtered_recommendations["expected_revenue_at_recommended_price"].sum()
@@ -344,7 +361,10 @@ def index(
 
     recommendation_meals = []
     if not filtered_recommendations.empty:
-        for row in filtered_recommendations[["meal_id", "category", "cuisine"]].itertuples(index=False):
+        meal_rows = filtered_recommendations[
+            ["meal_id", "category", "cuisine"]
+        ].itertuples(index=False)
+        for row in meal_rows:
             recommendation_meals.append(
                 {
                     "meal_id": int(row.meal_id),
@@ -443,8 +463,12 @@ def index(
         "recommendation_rows": serialize_recommendation_table(filtered_recommendations),
         "raw_rows": raw_rows,
         "raw_row_count": format_int(total_rows),
-        "filtered_center_count": format_int(filtered_data["center_id"].nunique() if not filtered_data.empty else 0),
-        "filtered_meal_count": format_int(filtered_data["meal_id"].nunique() if not filtered_data.empty else 0),
+        "filtered_center_count": format_int(
+            filtered_data["center_id"].nunique() if not filtered_data.empty else 0
+        ),
+        "filtered_meal_count": format_int(
+            filtered_data["meal_id"].nunique() if not filtered_data.empty else 0
+        ),
         "download_query": (
             f"category={category or ''}&cuisine={cuisine or ''}&recent_weeks={recent_weeks}"
             f"&max_change_pct={max_change_pct}&candidate_count={candidate_count}"
