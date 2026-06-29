@@ -1,9 +1,13 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "pricing-engine"
 version = "0.1.0"
 description = "FastAPI pricing engine dashboard and recommendation service"
 readme = "README.md"
-requires-python = ">=3.12,<3.13"
+requires-python = ">=3.12,<3.14"
 dependencies = [
     "fastapi>=0.111",
     "jinja2>=3.1",
@@ -18,11 +22,26 @@ dependencies = [
     "uvicorn>=0.30",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pytest>=9.0",
+    "ruff>=0.15",
+]
+
 [tool.vercel]
 entrypoint = "WebApp.main:app"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["WebApp*"]
+
+[tool.setuptools.package-data]
+WebApp = ["templates/*.html", "static/*.css"]
 
 [tool.ruff]
 extend-exclude = ["Dashboard", "Notebooks"]

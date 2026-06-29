@@ -1,0 +1,1 @@
+"""FastAPI pricing application package."""
